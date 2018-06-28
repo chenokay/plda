@@ -23,6 +23,7 @@
   --burn_in_iterations 10                              \
   --total_iterations 15
 */
+#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <set>
 #include <sstream>
@@ -61,12 +62,26 @@ int main(int argc, char** argv) {
   ofstream out(flags.inference_result_file_.c_str());
   string line;
   while (getline(fin, line)) {  // Each line is a training document.
-    if (line.size() > 0 &&      // Skip empty lines.
-        line[0] != '\r' &&      // Skip empty lines.
-        line[0] != '\n' &&      // Skip empty lines.
-        line[0] != '#') {       // Skip comment lines.
-      istringstream ss(line);
+
+	  std::vector<std::string> splited_s;
+	  // line has three part: userid userid_type words
+	  boost::split(splited_s, line, boost::is_any_of("\t"));
+	  if (splited_s.size() != 3) {
+		  continue;
+	  }
+
+	  std::string userid = splited_s[0];
+	  std::string userid_type = splited_s[1];
+	  std::string words = splited_s[2];
+
+    if (words.size() > 0 &&      // Skip empty lines.
+        words[0] != '\r' &&      // Skip empty lines.
+        words[0] != '\n' &&      // Skip empty lines.
+        words[0] != '#') {       // Skip comment lines.
+
+      istringstream ss(words);
       DocumentWordTopicsPB document_topics;
+
       string word;
       int count;
       while (ss >> word >> count) {  // Load and init a document.
@@ -91,6 +106,7 @@ int main(int argc, char** argv) {
           }
         }
       }
+	  out << userid << "\t" << userid_type << "\t";
       for (int topic = 0; topic < prob_dist.size(); ++topic) {
         out << prob_dist[topic] /
               (flags.total_iterations_ - flags.burn_in_iterations_)
